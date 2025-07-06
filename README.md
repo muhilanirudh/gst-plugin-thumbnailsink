@@ -1,77 +1,55 @@
-# GStreamer template repository
+# GStreamer JPEG Thumbnail Sink Plugin
 
-This git module contains template code for possible GStreamer projects.
+A GStreamer element that takes raw video buffers and writes out JPEG thumbnail files on disk.
 
-* gst-app :
-  basic meson-based layout for writing a GStreamer-based application.
+## Overview
 
-* gst-plugin :
-  basic meson-based layout and basic filter code for writing a GStreamer plug-in.
+**`thumbnailsink`** is a simple GStreamer sink element that:
 
-## License
+- Accepts raw video frames (`video/x-raw`)
+- Encodes each frame to a JPEG image
+- Writes each JPEG to a file using a user‑specified filename pattern
 
-This code is provided under a MIT license [MIT], which basically means "do
-with it as you wish, but don't blame us if it doesn't work". You can use
-this code for any project as you wish, under any license as you wish. We
-recommend the use of the LGPL [LGPL] license for applications and plugins,
-given the minefield of patents the multimedia is nowadays. See our website
-for details [Licensing].
+This plugin is ideal for pipelines where you want to capture periodic snapshots (thumbnails) from a live or recorded video stream.
 
-## Usage
+## Features
 
-Configure and build all examples (application and plugins) as such:
+- **Automatic JPEG encoding** of raw RGB/BGR/YUV frames
+- **Customizable filename pattern** (with timestamp or sequential numbering)
+- **Configurable snapshot interval** (e.g. every N frames or milliseconds)
+- **Thread‑safe file writes**  
+- **LGPL‑2.1‑or‑later** licensed
 
-    meson builddir
-    ninja -C builddir
+## Element Properties
 
-See <https://mesonbuild.com/Quick-guide.html> on how to install the Meson
-build system and ninja.
+| Property              | Type    | Default            | Description                                      |
+|-----------------------|---------|--------------------|--------------------------------------------------|
+| `location`            | string  | `"thumb-%05d.jpg"` | `printf`‑style pattern for output filenames      |
+| `snapshot-interval`   | guint   | `1`                | Take a thumbnail every N buffers                 |
+| `start-on-first-buffer` | boolean | `true`           | Begin writing on the very first buffer           |
 
-Modify `gst-plugin/meson.build` to add or remove source files to build or
-add additional dependencies or compiler flags or change the name of the
-plugin file to be installed.
+Examples:
 
-Modify `meson.build` to check for additional library dependencies
-or other features needed by your plugin.
+- `location="frame-%04d.jpg"` → `frame-0001.jpg`, `frame-0002.jpg`, …
+- `snapshot-interval=30` → write every 30th frame
 
-Once the plugin is built you can either install system-wide it with `sudo ninja
--C builddir install` (however, this will by default go into the `/usr/local`
-prefix where it won't be picked up by a `GStreamer` installed from packages, so
-you would need to set the `GST_PLUGIN_PATH` environment variable to include or
-point to `/usr/local/lib/gstreamer-1.0/` for your plugin to be found by a
-from-package `GStreamer`).
+## Requirements
 
-Alternatively, you will find your plugin binary in `builddir/gst-plugins/src/`
-as `libgstplugin.so` or similar (the extension may vary), so you can also set
-the `GST_PLUGIN_PATH` environment variable to the `builddir/gst-plugins/src/`
-directory (best to specify an absolute path though).
+- **GStreamer** ≥ 1.24  
+- **Meson** ≥ 0.60.0 and **Ninja** for building  
+- libjpeg (usually provided by `libjpeg-dev` or `libjpeg-turbo-devel`)
 
-You can also check if it has been built correctly with:
+## Building & Installing
 
-    gst-inspect-1.0 builddir/gst-plugins/src/libgstplugin.so
+```bash
+# Create build directory
+meson setup build
 
-## Auto-generating your own plugin
+# Compile
+ninja -C build
 
-You will find a helper script in `gst-plugins/tools/make_element` to generate
-the source/header files for a new plugin.
+# Install system‑wide (may need sudo)
+sudo ninja -C build install
 
-To create sources for `myfilter` based on the `gsttransform` template run:
-
-``` shell
-cd src;
-../tools/make_element myfilter gsttransform
-```
-
-This will create `gstmyfilter.c` and `gstmyfilter.h`. Open them in an editor and
-start editing. There are several occurances of the string `template`, update
-those with real values. The plugin will be called `myfilter` and it will have
-one element called `myfilter` too. Also look for `FIXME:` markers that point you
-to places where you need to edit the code.
-
-You can then add your sources files to `gst-plugins/meson.build` and re-run
-ninja to have your plugin built.
-
-
-[MIT]: http://www.opensource.org/licenses/mit-license.php or COPYING.MIT
-[LGPL]: http://www.opensource.org/licenses/lgpl-license.php or COPYING.LIB
-[Licensing]: https://gstreamer.freedesktop.org/documentation/application-development/appendix/licensing.html
+# Or set GST_PLUGIN_PATH to local build directory:
+export GST_PLUGIN_PATH="$PWD/build"
